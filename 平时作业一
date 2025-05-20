@@ -1,0 +1,59 @@
+def banker_algorithm(max_res, allocated, available, request=None, process=None):
+    need = [[max_res[i][j] - allocated[i][j] for j in range(len(max_res[0]))] for i in range(len(max_res))]
+    if request is not None and process is not None:
+        print(f"\n进程 P{process} 请求资源: {request}")
+        if any(request[j] > need[process][j] for j in range(len(request))):
+            print("错误：请求超过了进程的最大需求")
+            return False, None, max_res, allocated, available, need
+        if any(request[j] > available[j] for j in range(len(request))):
+            print("请求超过了可用资源，进程必须等待")
+            return False, None, max_res, allocated, available, need
+        new_allocated = [row[:] for row in allocated]
+        new_available = available[:]
+        new_need = [row[:] for row in need]
+        for j in range(len(request)):
+            new_allocated[process][j] += request[j]
+            new_available[j] -= request[j]
+            new_need[process][j] -= request[j]
+        is_safe, safe_sequence = check_safety(new_allocated, new_available, new_need)
+        if is_safe:
+            print("请求可以立即 granted")
+            print("安全序列:", " -> ".join(f"P{p}" for p in safe_sequence))
+            return True, safe_sequence, max_res, new_allocated, new_available, new_need
+        else:
+            print("请求会导致系统进入不安全状态，不能分配")
+            return False, None, max_res, allocated, available, need
+    else:
+        is_safe, safe_sequence = check_safety(allocated, available, need)
+        return is_safe, safe_sequence, max_res, allocated, available, need
+
+def check_safety(allocated, available, need):
+    n_processes = len(allocated)
+    n_resources = len(available)
+    work = available[:]
+    finish = [False] * n_processes
+    safe_sequence = []
+    while True:
+        found = False
+        for i in range(n_processes):
+            if not finish[i] and all(need[i][j] <= work[j] for j in range(n_resources)):
+                for j in range(n_resources):
+                    work[j] += allocated[i][j]
+                finish[i] = True
+                safe_sequence.append(i)
+                found = True
+                break
+        if not found:
+            break
+    if all(finish):
+        return True, safe_sequence
+    else:
+        return False, None
+def print_state(max_res, allocated, available, need):
+    print("\n当前系统状态:")
+    print("进程\t最大需求\t\t已分配\t\t需求\t")
+    for i in range(len(max_res)):
+        print(f"P{i}\t{max_res[i]}\t{allocated[i]}\t{need[i]}")
+    print(f"可用资源: {available}")
+
+
