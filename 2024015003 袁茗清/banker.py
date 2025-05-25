@@ -1,14 +1,10 @@
 def is_safe(processes, avail, max_need, alloc):
     n = len(processes)
     m = len(avail)
-
-    # 计算每个进程还需要的资源数量
     need = [[max_need[i][j] - alloc[i][j] for j in range(m)] for i in range(n)]
 
-    # 标记所有进程是否已经完成
     finish = [False] * n
 
-    # 安全序列初始化为空列表
     safe_seq = []
 
     work = avail[:]
@@ -17,7 +13,6 @@ def is_safe(processes, avail, max_need, alloc):
         found = False
         for p in range(n):
             if not finish[p]:
-                # 检查当前进程的需求是否小于等于工作集
                 if all(need[p][j] <= work[j] for j in range(m)):
                     for j in range(m):
                         work[j] += alloc[p][j]
@@ -25,7 +20,7 @@ def is_safe(processes, avail, max_need, alloc):
                     finish[p] = True
                     found = True
         if not found:
-            return None  # 如果找不到可以执行的进程，则系统处于不安全状态
+            return None  
 
     return safe_seq
 
