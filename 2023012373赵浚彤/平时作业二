@@ -1,1 +1,63 @@
+"""
+2023012373赵浚彤
+2025春季学期python
+平时作业2
+"""
+import random
+import string
+from typing import Dict, Any, Union, List, Tuple
 
+def data_generator(kwargs: Dict[Any, Any]) -> Union[Tuple, List[Tuple]]:
+    num = kwargs.get('num', 1)
+    for _ in range(num):
+        res = []
+        for k, v in kwargs.items():
+            if k == 'num':
+                continue
+            elif k == int:
+                start, end = v['datarange']
+                res.append(random.randint(start, end))
+            elif k == float:
+                start, end = v['datarange']
+                res.append(round(random.uniform(start, end), 2))
+            elif k == str:
+                chars = v['datarange']
+                length = v['len']
+                temp = ''.join(random.choices(chars, k=length))
+                res.append(temp)
+            elif k == dict:
+                elem = {}
+                for key in v.get('keys', []):
+                    elem[key] = random.choice([
+                        random.randint(0, 10),
+                        round(random.uniform(0.0, 1.0), 2)
+                    ])
+                res.append(elem)
+            elif k == list:
+                res.append(list(data_generator(v)))
+            elif k == tuple:
+                res.append(tuple(data_generator(v)))
+            else:
+                continue
+        yield tuple(res)
+
+def main():
+    struct1 = {
+        'num': 1,
+        tuple: {
+            int: {'datarange': (0, 100)},
+            float: {'datarange': (0.0, 100.0)},
+            str: {'datarange': string.ascii_uppercase, 'len': 5},
+            list: {
+                'num': 3,
+                int: {'datarange': (100, 200)}
+            },
+            dict: {'keys': ['age', 'score']}
+        }
+    }
+
+    generater = data_generator(struct1)
+    print(next(generater))
+
+if __name__ == '__main__':
+    main()
