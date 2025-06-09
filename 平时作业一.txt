@@ -1,0 +1,42 @@
+def banker_algorithm(available, max_need, allocation):
+    n_processes = len(allocation)
+    need = [[max_need[i][j] - allocation[i][j] for j in range(len(available))] for i in range(n_processes)]
+    work = available.copy()
+    finish = [False] * n_processes
+    safe_sequence = []
+
+    while True:
+        found = False
+        for i in range(n_processes):
+            if not finish[i] and all(need[i][j] <= work[j] for j in range(len(available))):
+                work = [work[j] + allocation[i][j] for j in range(len(available))]
+                finish[i] = True
+                safe_sequence.append(i)
+                found = True
+        if not found:
+            break
+
+    if all(finish):
+        return True, safe_sequence
+    else:
+        return False, []
+
+available = [3, 3, 2]
+max_need = [
+    [7, 5, 3],
+    [3, 2, 2],
+    [9, 0, 2],
+    [2, 2, 2],
+    [4, 3, 3]
+]
+allocation = [
+    [0, 1, 0],
+    [2, 0, 0],
+    [3, 0, 2],
+    [2, 1, 1],
+    [0, 0, 2]
+]
+
+is_safe, sequence = banker_algorithm(available, max_need, allocation)
+print("Safe:", is_safe)
+print("Sequence:", sequence)
