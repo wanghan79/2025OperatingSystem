@@ -1,7 +1,9 @@
 """
 2023012373赵浚彤
-2025春季学期python&操作系统
-平时作业1
+2025春季学期操作系统
+平时作业1：
+使用python语言模拟实现银行家算法，要求封装成一个函数，能够接收max，need，available，allocated矩阵以及资源申请request，
+使用银行家算法计算后输出是否能够分配，以及分配后的四个矩阵
 """
 def banker_algorithm(available, max_res, allocated, request, process_num=None):
     """
