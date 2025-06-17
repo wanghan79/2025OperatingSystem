@@ -1,80 +1,131 @@
-# # 银行家算法
-
-# 判断是否为安全序列
-def is_safe_state(available, max_need, allocation):
-    num_processes = len(max_need)
-    num_resources = len(available)
+#!/usr/bin/env python
+# coding:utf-8
+"""
+  Author:  臧睿华
+  Purpose: 银行家算法实现
+  Created: 5/6/2025
+"""
+def banker_algorithm(processes, resources, Max, Allocated, Available, Request, process_id):
+    """
+    银行家算法实现
     
-    # 计算need矩阵
-    need = [[max_need[i][j] - allocation[i][j] for j in range(num_resources)] for i in range(num_processes)]
+    参数:
+        processes: 进程数量
+        resources: 资源种类数量
+        Max: 最大需求矩阵 (processes x resources)
+        Allocated: 已分配矩阵 (processes x resources)
+        Available: 可用资源向量 (resources)
+        Request: 请求资源向量 (resources)
+        process_id: 请求资源的进程ID
+        
+    返回:
+        (是否能分配, 新的Allocated, 新的Need, 新的Available)
+    """
+    # 1. 检查请求是否小于等于Need
+    Need = [[Max[i][j] - Allocated[i][j] for j in range(resources)] for i in range(processes)]
     
-    work = available[:]    # 工作向量，系统可提供给进程继续运行的资源数量
-    finish = [False] * num_processes     # 系统是否有足够资源分配给进程
-    safe_sequence = []    # 安全序列
+    for j in range(resources):
+        if Request[j] > Need[process_id][j]:
+            return (False, "错误：请求的资源超过了声明的最大需求", Allocated, Need, Available)
     
-    while len(safe_sequence) < num_processes:
+    # 2. 检查请求是否小于等于Available
+    for j in range(resources):
+        if Request[j] > Available[j]:
+            return (False, "错误：资源不足，请等待", Allocated, Need, Available)
+    
+    # 3. 尝试分配资源
+    new_Allocated = [row[:] for row in Allocated]
+    new_Need = [row[:] for row in Need]
+    new_Available = Available[:]
+    
+    for j in range(resources):
+        new_Allocated[process_id][j] += Request[j]
+        new_Need[process_id][j] -= Request[j]
+        new_Available[j] -= Request[j]
+    
+    # 4. 检查安全性
+    Work = new_Available[:]
+    Finish = [False] * processes
+    
+    # 寻找可以完成的进程
+    safe_sequence = []
+    count = 0
+    
+    while count < processes:
         found = False
-        for i in range(num_processes):
-            if not finish[i]:
-                if all(need[i][j] <= work[j] for j in range(num_resources)):
-                    work = [work[j] + allocation[i][j] for j in range(num_resources)]
-                    finish[i] = True
+        for i in range(processes):
+            if not Finish[i]:
+                # 检查该进程的所有资源需求是否小于等于Work
+                can_execute = True
+                for j in range(resources):
+                    if new_Need[i][j] > Work[j]:
+                        can_execute = False
+                        break
+                
+                if can_execute:
+                    # 执行该进程并释放资源
+                    for j in range(resources):
+                        Work[j] += new_Allocated[i][j]
+                    Finish[i] = True
                     safe_sequence.append(i)
+                    count += 1
                     found = True
-                    break
+        
         if not found:
-            return False, []  # 处于不安全状态
+            break  # 没有找到可以执行的进程
     
-    return True, safe_sequence
-
-def banker_algorithm(max_need, need, available, allocation, request): 
-    num_processes = len(max_need)
-    num_resources = len(available)
-    process_id = -1  # 假设请求是针对特定的流程
-
-    for i in range(num_processes):
-        if all(request[j] <= need[i][j] for j in range(num_resources)) and all(request[j] <= available[j] for j in range(num_resources)):
-            process_id = i
-            break
-
-    if process_id == -1:
-        return "错误：请求超出需求或可用资源", None, None, None, None
-    
-    
-    if all(request[j] <= available[j] for j in range(num_resources)):
-        
-        # 临时分配请求的资源
-        available_temp = [available[j] - request[j] for j in range(num_resources)]
-        allocation_temp = [row[:] for row in allocation]
-        need_temp = [row[:] for row in need]
-        
-        for j in range(num_resources):
-            allocation_temp[process_id][j] += request[j]
-            need_temp[process_id][j] -= request[j]
-        
-        # 检查假设分配后的系统安全性
-        safe, _ = is_safe_state(available_temp, max_need, allocation_temp)
-        if safe:
-            available[:] = available_temp
-            allocation[:] = allocation_temp
-            need[:] = need_temp
-            return "可以完成本次分配，系统处于安全状态", available, max_need, allocation, [[max_need[i][j] - allocation[i][j] for j in range(num_resources)] for i in range(num_processes)]
-        else:
-            return "不可以完成本次分配，系统处于不安全状态", available, max_need, allocation, need
+    # 如果所有进程都能完成，则是安全状态
+    if all(Finish):
+        return (True, "可以安全分配，安全序列: " + str(safe_sequence), new_Allocated, new_Need, new_Available)
     else:
-        return "请求超出可用资源", available, max_need, allocation, need
+        # 回滚分配
+        return (False, "分配会导致系统进入不安全状态", Allocated, Need, Available)
 
-# 样例
-Max = [[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]]
-Need = [[7, 4, 3], [1, 2, 2], [6, 0, 0], [0, 1, 1], [4, 3, 1]]
-Available = [3, 3, 2]
-Allocated = [[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]]
-Request = [1, 0, 2]  
 
-result, new_available, new_max, new_allocation, new_need = banker_algorithm(Max, Need, Available, Allocated, Request)
-print(result)
-if new_available is not None:
-    print("New Available:", new_available)
-    print("New Max:", new_max)
-    print("New Allocation:", new_allocation)
-    print("New Need:", new_need)
+# 示例使用
+if __name__ == "__main__":
+    # 示例数据
+    processes = 5
+    resources = 3
+    
+    # 最大需求矩阵
+    Max = [
+        [7, 5, 3],
+        [3, 2, 2],
+        [9, 0, 2],
+        [2, 2, 2],
+        [4, 3, 3]
+    ]
+    
+    # 已分配矩阵
+    Allocated = [
+        [0, 1, 0],
+        [2, 0, 0],
+        [3, 0, 2],
+        [2, 1, 1],
+        [0, 0, 2]
+    ]
+    
+    # 可用资源
+    Available = [3, 3, 2]
+    
+    # 进程1请求资源
+    Request = [1, 0, 2]
+    process_id = 1
+    
+    # 运行银行家算法
+    can_allocate, message, new_Allocated, new_Need, new_Available = banker_algorithm(
+        processes, resources, Max, Allocated, Available, Request, process_id
+    )
+    
+    # 输出结果
+    print("分配结果:", "可以分配" if can_allocate else "不能分配")
+    print("消息:", message)
+    print("\n分配后的矩阵:")
+    print("Allocated:")
+    for row in new_Allocated:
+        print(row)
+    print("\nNeed:")
+    for row in new_Need:
+        print(row)
+    print("\nAvailable:", new_Available)
