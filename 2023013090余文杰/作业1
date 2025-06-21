@@ -1,0 +1,100 @@
+def input_matrix(prompt, rows, cols):
+    print(prompt)
+    matrix = []
+    for i in range(rows):
+        while True:
+            try:
+                row = list(map(int, input(f"").strip().split()))
+                if len(row) != cols:
+                    raise ValueError("列数不匹配，请重新输入")
+                matrix.append(row)
+                break
+            except ValueError as e:
+                print(e)
+    return matrix
+
+
+def input_vector(prompt, length):
+    while True:
+        try:
+            vector = list(map(int, input(prompt).strip().split()))
+            if len(vector) != length:
+                raise ValueError(f"需要 {length} 个数字，请重新输入")
+            return vector
+        except ValueError as e:
+            print(e)
+
+
+def bankers_algorithm(Max, Need, Available, Allocated, Request, process_id):
+    num_processes = len(Max)
+    num_resources = len(Available)
+
+    for i in range(num_resources):
+        if Request[i] > Need[process_id][i]:
+            print(f"请求超出进程 {process_id} 的所需资源，拒绝分配")
+            return False, Max, Need, Available, Allocated
+
+    for i in range(num_resources):
+        if Request[i] > Available[i]:
+            print("系统无足够资源，拒绝分配")
+            return False, Max, Need, Available, Allocated
+
+    for i in range(num_resources):
+        Allocated[process_id][i] += Request[i]
+        Available[i] -= Request[i]
+        Need[process_id][i] -= Request[i]
+
+    work = Available.copy()
+    finish = [False] * num_processes
+    safe_sequence = []
+
+    while True:
+        found = False
+        for i in range(num_processes):
+            if not finish[i]:
+                can_allocate = all(Need[i][j] <= work[j] for j in range(num_resources))
+                if can_allocate:
+                    for j in range(num_resources):
+                        work[j] += Allocated[i][j]
+                    finish[i] = True
+                    safe_sequence.append(i)
+                    found = True
+        if not found:
+            break
+
+    if all(finish):
+        print("资源分配成功，系统仍处于安全状态。")
+        print("安全序列:", safe_sequence)
+        return True, Max, Need, Available, Allocated
+    else:
+        print("资源分配失败，系统进入不安全状态。回滚到原始状态。")
+        for i in range(num_resources):
+            Allocated[process_id][i] -= Request[i]
+            Available[i] += Request[i]
+            Need[process_id][i] += Request[i]
+        return False, Max, Need, Available, Allocated
+
+
+if __name__ == "__main__":
+    num_processes = int(input("请输入进程数量: "))
+    num_resources = int(input("请输入资源种类数量: "))
+
+    Max = input_matrix("请输入 Max 矩阵（最大资源需求）:", num_processes, num_resources)
+    Allocated = input_matrix("请输入 Allocated 矩阵（已分配资源）:", num_processes, num_resources)
+    Available = input_vector(f"请输入 Available 向量（当前可用资源，{num_resources} 个数字）: ", num_resources)
+
+    # 自动计算 Need 矩阵
+    Need = [[Max[i][j] - Allocated[i][j] for j in range(num_resources)] for i in range(num_processes)]
+
+    Request = input_vector(f"请输入 Request 向量（资源请求，{num_resources} 个数字）: ", num_resources)
+    process_id = int(input(f"请输入请求资源的进程编号（0 ~ {num_processes - 1}）: "))
+
+    # 执行银行家算法
+    success, newMax, newNeed, newAvailable, newAllocated = bankers_algorithm(Max, Need, Available, Allocated, Request, process_id)
+
+    if success:
+        print("\n资源分配后：")
+        print("Max:", newMax)
+        print("Need:", newNeed)
+        print("Available:", newAvailable)
+        print("Allocated:", newAllocated)
