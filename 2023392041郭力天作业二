@@ -1,0 +1,600 @@
+第一章
+一
+1 操作系统是管理和控制计算机硬件与软件资源的系统软件，是用户与计算机硬件之间的接口。其主要功能包括处理器管理、存储管理、设备管理、文件管理等，并提供用户操作界面
+4 实时操作系统是严格保证任务在规定时间内完成的操作系统，主要用于工业控制、航空航天、医疗设备等对时间敏感的领域。分为：硬实时系统、软实时系统
+5 互斥共享是指多个进程/线程不能同时访问某一共享资源，必须通过同步机制（如锁、信号量）保证资源独占使用，防止数据竞争和错误。例如，打印机一次只能被一个任务占用，其他任务需等待。
+三
+1 硬件系统、软件系统
+3 硬件资源、软件资源
+5 共享性、异步性
+第二章
+一
+3 临界区是指进程中访问共享资源（如变量、文件、设备）的那段代码，必须互斥执行，以防止数据不一致或竞态条件（Race Condition）。
+4 进程同步是指通过某种机制协调多个进程的执行顺序，以确保它们正确、有序地访问共享资源或完成协作任务。
+三
+1 动态性、异步性、结构性
+5 动态、静态
+6 间接制约
+8 共享内存、消息传递、管道通信
+9 就绪、运行、阻塞
+五
+2
+import threading
+
+# 初始化信号量，初始值为 0 表示需等待前驱完成
+s1_done = threading.Semaphore(0)
+s2_done = threading.Semaphore(0)
+s3_done = threading.Semaphore(0)
+s4_done = threading.Semaphore(0)
+s5_done = threading.Semaphore(0)
+s6_done = threading.Semaphore(0)
+
+def S1():
+    print("S1 执行")
+    # S1 完成，释放信号量，允许 S2、S3 执行
+    s1_done.release()
+    s1_done.release()
+
+def S2():
+    # 等待 S1 完成
+    s1_done.acquire()
+    print("S2 执行")
+    # S2 完成，释放信号量，允许 S4、S5 执行
+    s2_done.release()
+    s2_done.release()
+
+def S3():
+    # 等待 S1 完成
+    s1_done.acquire()
+    print("S3 执行")
+    # S3 完成，释放信号量，允许 S6 执行
+    s3_done.release()
+
+def S4():
+    # 等待 S2 完成
+    s2_done.acquire()
+    print("S4 执行")
+    # S4 完成，释放信号量，允许 S7 执行
+    s4_done.release()
+
+def S5():
+    # 等待 S2 完成
+    s2_done.acquire()
+    print("S5 执行")
+    # S5 完成，释放信号量，允许 S7 执行
+    s5_done.release()
+
+def S6():
+    # 等待 S3 完成
+    s3_done.acquire()
+    print("S6 执行")
+    # S6 完成，释放信号量，允许 S7 执行
+    s6_done.release()
+
+def S7():
+    # 等待 S4、S5、S6 完成
+    s4_done.acquire()
+    s5_done.acquire()
+    s6_done.acquire()
+    print("S7 执行")
+
+# 创建线程并启动
+threads = [
+    threading.Thread(target=S1),
+    threading.Thread(target=S2),
+    threading.Thread(target=S3),
+    threading.Thread(target=S4),
+    threading.Thread(target=S5),
+    threading.Thread(target=S6),
+    threading.Thread(target=S7)
+]
+
+for t in threads:
+    t.start()
+
+for t in threads:
+    t.join()
+3
+import threading
+import time
+import random
+
+# 盘子容量
+plate_capacity = 5
+# 信号量：控制盘子是否为空，初始为盘子容量
+empty = threading.Semaphore(plate_capacity)
+# 信号量：控制苹果数量，初始为 0
+apple = threading.Semaphore(0)
+# 信号量：控制桔子数量，初始为 0
+orange = threading.Semaphore(0)
+# 互斥信号量，保证三人不同时操作盘子
+mutex = threading.Semaphore(1)
+
+
+# 父亲进程
+def father():
+    global plate_capacity
+    while True:
+        empty.acquire()
+        mutex.acquire()
+        fruit = "苹果" if random.randint(0, 1) == 0 else "桔子"
+        print(f"父亲放入 {fruit}")
+        if fruit == "苹果":
+            apple.release()
+        else:
+            orange.release()
+        mutex.release()
+        time.sleep(1)
+
+
+# 儿子进程
+def son():
+    while True:
+        orange.acquire()
+        mutex.acquire()
+        print("儿子取出桔子")
+        empty.release()
+        mutex.release()
+        time.sleep(1)
+
+
+# 女儿进程
+def daughter():
+    while True:
+        apple.acquire()
+        mutex.acquire()
+        print("女儿取出苹果")
+        empty.release()
+        mutex.release()
+        time.sleep(1)
+
+
+# 创建线程
+father_thread = threading.Thread(target=father)
+son_thread = threading.Thread(target=son)
+daughter_thread = threading.Thread(target=daughter)
+
+# 启动线程
+father_thread.start()
+son_thread.start()
+daughter_thread.start()
+4
+import threading
+
+# 缓冲区 1 空信号量，初始为 1（表示可以放入一个记录）
+empty1 = threading.Semaphore(1)
+# 缓冲区 1 满信号量，初始为 0（表示初始没有记录）
+full1 = threading.Semaphore(0)
+# 缓冲区 2 空信号量，初始为 1（表示可以放入一个记录）
+empty2 = threading.Semaphore(1)
+# 缓冲区 2 满信号量，初始为 0（表示初始没有记录）
+full2 = threading.Semaphore(0)
+
+# 模拟缓冲区，实际使用中可根据需求定义具体存储结构，这里简单用变量示意
+buffer1 = None
+buffer2 = None
+
+
+# PA 进程：从磁盘读记录到缓冲区 1
+def PA():
+    global buffer1
+    for i in range(5):  # 假设读 5 个记录，可根据实际调整
+        empty1.acquire()  # P 操作，申请缓冲区 1 空资源
+        buffer1 = f"记录{i}"  # 模拟读入记录
+        print(f"PA 读入: {buffer1} 到缓冲区 1")
+        full1.release()  # V 操作，释放缓冲区 1 满资源
+
+
+# PB 进程：从缓冲区 1 复制到缓冲区 2
+def PB():
+    global buffer1, buffer2
+    for _ in range(5):
+        full1.acquire()  # P 操作，申请缓冲区 1 满资源
+        buffer2 = buffer1  # 模拟复制
+        print(f"PB 复制: {buffer2} 到缓冲区 2")
+        empty1.release()  # V 操作，释放缓冲区 1 空资源
+        full2.release()  # V 操作，释放缓冲区 2 满资源
+
+
+# PC 进程：从缓冲区 2 打印记录
+def PC():
+    global buffer2
+    for _ in range(5):
+        full2.acquire()  # P 操作，申请缓冲区 2 满资源
+        print(f"PC 打印: {buffer2}")
+        empty2.release()  # V 操作，释放缓冲区 2 空资源
+
+
+# 创建线程
+pa_thread = threading.Thread(target=PA)
+pb_thread = threading.Thread(target=PB)
+pc_thread = threading.Thread(target=PC)
+
+# 启动线程
+pa_thread.start()
+pb_thread.start()
+pc_thread.start()
+
+# 等待线程结束
+pa_thread.join()
+pb_thread.join()
+pc_thread.join()
+5
+import threading
+import time
+import random
+
+# 信号量初始化
+# 顾客数，初始为 0
+customers = threading.Semaphore(0)  
+# 理发师状态，初始为 0 表示空闲（用于唤醒理发师）
+barber = threading.Semaphore(0)  
+# 互斥信号量，保护对沙发数量等共享资源的访问
+mutex = threading.Semaphore(1)  
+# 沙发数量，可根据题目设定 N 值
+N = 3  
+# 记录当前等待的顾客数（坐沙发的）
+waiting = 0  
+# 用于顾客付费完成后的同步，初始为 0
+payment = threading.Semaphore(0)  
+
+
+# 理发师进程
+def barber_process():
+    global waiting
+    while True:
+        customers.acquire()  # P 操作，等待顾客唤醒
+        mutex.acquire()
+        waiting -= 1  # 有顾客来理发，等待顾客数减 1
+        barber.release()  # V 操作，理发师开始工作
+        mutex.release()
+
+        # 模拟理发过程
+        print("理发师开始为顾客理发")
+        time.sleep(random.randint(1, 3))
+        print("理发师理发完成，等待顾客付费")
+
+        payment.acquire()  # P 操作，等待顾客付费
+        print("顾客付费完成，离开理发店")
+
+
+# 顾客进程
+def customer_process(customer_id):
+    global waiting
+    mutex.acquire()
+    if waiting < N:  # 有沙发可坐
+        waiting += 1  # 等待顾客数加 1
+        print(f"顾客 {customer_id} 进入，找到沙发坐下等待，当前等待数: {waiting}")
+        customers.release()  # V 操作，唤醒理发师
+        mutex.release()
+        barber.acquire()  # P 操作，等待理发师服务
+        # 模拟理发前准备等（可选）
+        time.sleep(1)
+        # 模拟付费
+        print(f"顾客 {customer_id} 开始付费")
+        payment.release()  # V 操作，完成付费
+    else:  # 没沙发，离开
+        print(f"顾客 {customer_id} 进入，无空沙发，离开理发店")
+        mutex.release()
+
+
+# 创建并启动理发师线程
+barber_thread = threading.Thread(target=barber_process)
+barber_thread.start()
+
+# 模拟多个顾客到来，可调整循环次数
+for i in range(5):
+    customer_thread = threading.Thread(target=customer_process, args=(i,))
+    time.sleep(random.randint(0, 2))  # 模拟顾客随机到达间隔
+    customer_thread.start()
+第三章
+一
+2 操作系统决定哪个就绪进程或线程获得CPU使用权的过程。 
+3 从作业提交到作业完成所经历的总时间。
+4 多个进程因竞争资源而互相等待，导致所有进程无法继续执行的状态。
+三
+2 提交状态、后备状态、完成状态
+6 预防死锁、避免死锁、检测死锁、解除死锁
+五
+1
+import pandas as pd
+
+# 进程数据
+processes = ['A', 'B', 'C', 'D', 'E']
+arrival_time = [0, 2, 4, 6, 8]
+service_time = [3, 6, 4, 5, 2]
+
+# 定义计算各类调度算法指标的函数
+def fcfs(arrival, service):
+    n = len(arrival)
+    completion = [0] * n
+    turnaround = [0] * n
+    weighted_turnaround = [0] * n
+    completion[0] = arrival[0] + service[0]
+    for i in range(1, n):
+        completion[i] = max(arrival[i], completion[i-1]) + service[i]
+    for i in range(n):
+        turnaround[i] = completion[i] - arrival[i]
+        weighted_turnaround[i] = turnaround[i] / service[i]
+    avg_turnaround = sum(turnaround) / n
+    avg_weighted = sum(weighted_turnaround) / n
+    return completion, turnaround, weighted_turnaround, avg_turnaround, avg_weighted
+
+def non_preemptive_sjf(arrival, service):
+    n = len(arrival)
+    remaining = service.copy()
+    completion = [0] * n
+    turnaround = [0] * n
+    weighted_turnaround = [0] * n
+    total_time = 0
+    completed = 0
+    start_time = [0] * n
+    while completed < n:
+        ready = [i for i in range(n) if arrival[i] <= total_time and remaining[i] > 0]
+        if ready:
+            next_p = min(ready, key=lambda x: remaining[x])
+            start_time[next_p] = total_time
+            total_time += remaining[next_p]
+            completion[next_p] = total_time
+            remaining[next_p] = 0
+            completed += 1
+        else:
+            total_time += 1
+    for i in range(n):
+        turnaround[i] = completion[i] - arrival[i]
+        weighted_turnaround[i] = turnaround[i] / service[i]
+    avg_turnaround = sum(turnaround) / n
+    avg_weighted = sum(weighted_turnaround) / n
+    return completion, turnaround, weighted_turnaround, avg_turnaround, avg_weighted
+
+def preemptive_sjf(arrival, service):
+    n = len(arrival)
+    remaining = service.copy()
+    completion = [0] * n
+    turnaround = [0] * n
+    weighted_turnaround = [0] * n
+    total_time = 0
+    completed = 0
+    while completed < n:
+        ready = [i for i in range(n) if arrival[i] <= total_time and remaining[i] > 0]
+        if ready:
+            next_p = min(ready, key=lambda x: remaining[x])
+            remaining[next_p] -= 1
+            total_time += 1
+            if remaining[next_p] == 0:
+                completion[next_p] = total_time
+                completed += 1
+        else:
+            total_time += 1
+    for i in range(n):
+        turnaround[i] = completion[i] - arrival[i]
+        weighted_turnaround[i] = turnaround[i] / service[i]
+    avg_turnaround = sum(turnaround) / n
+    avg_weighted = sum(weighted_turnaround) / n
+    return completion, turnaround, weighted_turnaround, avg_turnaround, avg_weighted
+
+def hrrn(arrival, service):
+    n = len(arrival)
+    completion = [0] * n
+    turnaround = [0] * n
+    weighted_turnaround = [0] * n
+    total_time = 0
+    completed = 0
+    while completed < n:
+        ready = [i for i in range(n) if arrival[i] <= total_time and completion[i] == 0]
+        if ready:
+            ratios = []
+            for i in ready:
+                waiting = total_time - arrival[i]
+                ratio = (waiting + service[i]) / service[i]
+                ratios.append(ratio)
+            next_p = ready[ratios.index(max(ratios))]
+            completion[next_p] = total_time + service[next_p]
+            total_time = completion[next_p]
+            completed += 1
+        else:
+            total_time += 1
+    for i in range(n):
+        turnaround[i] = completion[i] - arrival[i]
+        weighted_turnaround[i] = turnaround[i] / service[i]
+    avg_turnaround = sum(turnaround) / n
+    avg_weighted = sum(weighted_turnaround) / n
+    return completion, turnaround, weighted_turnaround, avg_turnaround, avg_weighted
+
+def rr(arrival, service, quantum=1):
+    n = len(arrival)
+    remaining = service.copy()
+    completion = [0] * n
+    turnaround = [0] * n
+    weighted_turnaround = [0] * n
+    total_time = 0
+    completed = 0
+    while completed < n:
+        for i in range(n):
+            if remaining[i] > 0 and arrival[i] <= total_time:
+                start = total_time
+                total_time += min(quantum, remaining[i])
+                remaining[i] -= min(quantum, remaining[i])
+                if remaining[i] == 0:
+                    completion[i] = total_time
+                    completed += 1
+        if completed < n:
+            total_time += 1
+    for i in range(n):
+        turnaround[i] = completion[i] - arrival[i]
+        weighted_turnaround[i] = turnaround[i] / service[i]
+    avg_turnaround = sum(turnaround) / n
+    avg_weighted = sum(weighted_turnaround) / n
+    return completion, turnaround, weighted_turnaround, avg_turnaround, avg_weighted
+
+# 执行各算法并输出结果
+fcfs_comp, fcfs_turn, fcfs_wt, fcfs_avg_t, fcfs_avg_wt = fcfs(arrival_time, service_time)
+non_pre_sjf_comp, non_pre_sjf_turn, non_pre_sjf_wt, non_pre_sjf_avg_t, non_pre_sjf_avg_wt = non_preemptive_sjf(arrival_time, service_time)
+pre_sjf_comp, pre_sjf_turn, pre_sjf_wt, pre_sjf_avg_t, pre_sjf_avg_wt = preemptive_sjf(arrival_time, service_time)
+hrrn_comp, hrrn_turn, hrrn_wt, hrrn_avg_t, hrrn_avg_wt = hrrn(arrival_time, service_time)
+rr_comp, rr_turn, rr_wt, rr_avg_t, rr_avg_wt = rr(arrival_time, service_time)
+
+# 整理结果为 DataFrame 方便查看
+results = {
+    '进程': processes,
+    'FCFS_完成时间': fcfs_comp, 'FCFS_周转时间': fcfs_turn, 'FCFS_带权周转时间': fcfs_wt,
+    '非抢占SJF_完成时间': non_pre_sjf_comp, '非抢占SJF_周转时间': non_pre_sjf_turn, '非抢占SJF_带权周转时间': non_pre_sjf_wt,
+    '抢占SJF_完成时间': pre_sjf_comp, '抢占SJF_周转时间': pre_sjf_turn, '抢占SJF_带权周转时间': pre_sjf_wt,
+    'HRRN_完成时间': hrrn_comp, 'HRRN_周转时间': hrrn_turn, 'HRRN_带权周转时间': hrrn_wt,
+    'RR_完成时间': rr_comp, 'RR_周转时间': rr_turn, 'RR_带权周转时间': rr_wt
+}
+df = pd.DataFrame(results)
+
+# 补充平均指标
+avg_data = {
+    '进程': ['平均'],
+    'FCFS_完成时间': [None], 'FCFS_周转时间': [fcfs_avg_t], 'FCFS_带权周转时间': [fcfs_avg_wt],
+    '非抢占SJF_完成时间': [None], '非抢占SJF_周转时间': [non_pre_sjf_avg_t], '非抢占SJF_带权周转时间': [non_pre_sjf_avg_wt],
+    '抢占SJF_完成时间': [None], '抢占SJF_周转时间': [pre_sjf_avg_t], '抢占SJF_带权周转时间': [pre_sjf_avg_wt],
+    'HRRN_完成时间': [None], 'HRRN_周转时间': [hrrn_avg_t], 'HRRN_带权周转时间': [hrrn_avg_wt],
+    'RR_完成时间': [None], 'RR_周转时间': [rr_avg_t], 'RR_带权周转时间': [rr_avg_wt]
+}
+avg_df = pd.DataFrame(avg_data)
+df = pd.concat([df, avg_df], ignore_index=True)
+
+print(df)
+2
+import time
+
+# 任务类定义
+class PeriodicTask:
+    def __init__(self, name, period, exec_time):
+        self.name = name
+        self.period = period  # 周期，单位 ms
+        self.exec_time = exec_time  # 执行时间，单位 ms
+        self.next_release_time = 0  # 下一次释放时间，初始为 0
+        self.remaining_exec = exec_time  # 剩余执行时间，初始为总执行时间
+
+    def update(self, current_time):
+        # 若到了下一次释放时间，重置剩余执行时间和下一次释放时间
+        if current_time >= self.next_release_time:
+            self.remaining_exec = self.exec_time
+            self.next_release_time = current_time + self.period
+        # 计算松弛度：松弛度 = 周期 - (当前时间 - 上一次释放时间) - 剩余执行时间
+        # 上一次释放时间到当前时间的已消耗时间 = current_time - (self.next_release_time - self.period) 
+        # 简化后松弛度 = self.period - (current_time - (self.next_release_time - self.period)) - self.remaining_exec 
+        # 进一步整理为 = self.period - current_time + self.next_release_time - self.period - self.remaining_exec 
+        # 最终：松弛度 = self.next_release_time - current_time - self.remaining_exec
+        slack = self.next_release_time - current_time - self.remaining_exec
+        return slack
+
+    def execute(self, time_slice):
+        # 执行任务，消耗 CPU 时间
+        exec_duration = min(time_slice, self.remaining_exec)
+        self.remaining_exec -= exec_duration
+        return exec_duration
+
+
+# 初始化任务
+task_a = PeriodicTask("A", 20, 10)
+task_b = PeriodicTask("B", 50, 10)
+task_c = PeriodicTask("C", 50, 15)
+tasks = [task_a, task_b, task_c]
+
+# 模拟调度过程，总模拟时长可自行调整
+total_simulation_time = 100  # 单位 ms
+current_time = 0
+
+while current_time < total_simulation_time:
+    # 计算每个任务的松弛度，筛选出已释放（next_release_time <= current_time ）的任务
+    valid_tasks = [task for task in tasks if task.next_release_time <= current_time]
+    if not valid_tasks:
+        # 无已释放任务，推进时间到下一个任务释放时间
+        next_release = min(task.next_release_time for task in tasks)
+        current_time = next_release
+        continue
+    # 计算各任务松弛度并找出松弛度最低的任务
+    slacks = [task.update(current_time) for task in valid_tasks]
+    selected_task = valid_tasks[slacks.index(min(slacks))]
+    # 执行选中任务，这里简单模拟执行 1ms 时间片（可按需调整）
+    exec_time = selected_task.execute(1)
+    print(f"时间 {current_time} - {current_time + exec_time}：执行任务 {selected_task.name}，剩余执行时间 {selected_task.remaining_exec}")
+    current_time += exec_time
+3
+import numpy as np
+
+# 初始化数据
+Max = np.array([
+    [0, 0, 4, 4],
+    [2, 7, 5, 0],
+    [3, 6, 10, 10],
+    [0, 9, 8, 4],
+    [0, 6, 6, 10]
+])
+Need = np.array([
+    [0, 0, 1, 2],
+    [1, 7, 5, 0],
+    [2, 3, 5, 6],
+    [0, 6, 5, 2],
+    [0, 6, 5, 6]
+])
+Available = np.array([1, 6, 2, 2])
+# 根据 Allocated = Max - Need 计算 Allocated 矩阵
+Allocated = Max - Need
+
+# 问题(1)：判断是否安全
+def is_safe(Available, Allocated, Need):
+    Work = Available.copy()
+    Finish = [False] * len(Allocated)
+    safe_sequence = []
+    while not all(Finish):
+        found = False
+        for i in range(len(Allocated)):
+            if not Finish[i] and np.all(Need[i] <= Work):
+                Work += Allocated[i]
+                Finish[i] = True
+                safe_sequence.append(f"P{i}")
+                found = True
+        if not found:
+            break
+    return all(Finish), safe_sequence
+
+# 问题(2)：判断 P2 请求 Request(1,2,2,2) 是否可分配
+def request_resource(process_id, Request, Available, Allocated, Need):
+    if np.any(Request > Need[process_id]):
+        return False, "请求超过最大需求"
+    if np.any(Request > Available):
+        return False, "请求超过可用资源"
+    # 尝试分配
+    new_Available = Available - Request
+    new_Allocated = Allocated.copy()
+    new_Allocated[process_id] += Request
+    new_Need = Need.copy()
+    new_Need[process_id] -= Request
+    # 检查分配后是否安全
+    is_safe_flag, _ = is_safe(new_Available, new_Allocated, new_Need)
+    return is_safe_flag, new_Available, new_Allocated, new_Need
+
+# 问题(3)：判断满足 P2 请求后是否死锁（即检查分配后是否安全，不安全不代表立即死锁，但这里按逻辑判断）
+# 实际死锁需后续进程请求等，但题目场景下看分配后是否安全，不安全则有死锁风险
+
+# 解答问题(1)
+safe, sequence = is_safe(Available, Allocated, Need)
+print("(1) 分配矩阵 Allocated：\n", Allocated)
+print("是否安全：", safe)
+print("安全序列：", sequence if safe else "无")
+
+# 解答问题(2)
+Request_P2 = np.array([1, 2, 2, 2])
+p2_result, *rest = request_resource(2, Request_P2, Available, Allocated, Need)
+if p2_result:
+    new_Avail, new_Alloc, new_Need = rest
+    print("\n(2) 可以分配资源给 P2")
+    print("分配后 Available：", new_Avail)
+    print("分配后 Allocated：\n", new_Alloc)
+    print("分配后 Need：\n", new_Need)
+else:
+    print("\n(2) 无法分配资源给 P2，原因：", rest[0])
+
+# 解答问题(3)
+if p2_result:
+    # 检查分配后是否安全，不安全则有死锁风险（题目场景下判断）
+    post_safe, _ = is_safe(new_Avail, new_Alloc, new_Need)
+    print("\n(3) 满足 P2 请求后，系统是否立即死锁：", not post_safe)
+else:
+    print("\n(3) 未分配，不涉及死锁判断")
