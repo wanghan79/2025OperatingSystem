@@ -1,0 +1,155 @@
+//银行家算法
+#include<stdio.h>
+int Max[5][3] = {0,1,2,4,2,2,3,0,3,3,1,1,0,0,4};         //五个进程对各种资源的最大需求
+int Allocation[5][3] = {0,1,0,2,0,0,3,0,3,2,1,1,0,0,2};  //五个进程已分配的各种资源数目 
+int Need[5][3] = {0,0,2,2,2,2,0,0,0,1,0,0,0,0,2};        //五个进程任需要各种资源的数目 
+int Available[3] = {0,0,0};                              //可利用的各资源的数目
+int Work[3];                                             //可用资源数 
+bool Finish[5];                                          //进程是否完成 
+int Request[3];                                          //进程提出对各个资源请求的数目 
+int Sequence[5];                                         //安全序列 
+
+bool is_safe()                           //安全性判断 
+{
+ int i,j,i1 = 0;
+ bool t = false;
+ 
+ for(i = 0; i < 3; i++)               //把Available赋值给Work
+ {
+  Work[i] =  Available[i];
+ }
+  
+ for(i = 0; i<5; i++)                 //初始化所有进程未完成 
+ {
+  Finish[i] = false;
+ }
+ 
+ while(1)
+ {
+  for(j = 0; j < 5; j++)           //寻找Need小于等于Work的进程 
+  {
+   if(Finish[j]) continue;
+   t = true;
+   for(i = 0; i < 3; i++)
+   {
+    if(Need[j][i] <= Work[i]) continue;
+    else
+    {
+     t = false;
+     break;
+    }
+   }
+   if(t) break;                 //判断第j个进程是否满足Need小于等于Work
+  }
+  
+  if(t && (Finish[j] == false))    //是否找到Need小于等于Work的进程并且进程未完成 
+  {
+   for(i = 0; i < 3; i++)
+   {
+    Work[i] = Work[i] + Allocation[j][i];
+   }
+   Finish[j] = true;           //进程完成 
+   Sequence[i1] = j;           //安全序列
+   i1++;
+  }
+  else
+  {
+   for(i = 0; i < 5; i++)
+   {
+    if(Finish[i]) continue;
+    else return false;
+   }
+   return true;
+  }
+  
+ }
+ return true;
+}
+
+void request_option(int a)             //资源的请求选择 
+{
+ int i;
+ bool t = true;
+ 
+ for(i = 0; i < 3; i++)                //判断Requesti是否小于等于Needi 
+ {
+  if(Request[i] <= Need[a][i]) continue;
+  else
+  {
+   printf("错误！\n");          //Requesti大于Needi出现错误，请求失败 
+   t = false;
+   break;
+  }
+ }
+ 
+ if(t)
+ {
+  for(i = 0; i < 3; i++)         //判断Requesti是否小于等于Availablei 
+  {
+   if(Request[i] <= Need[a][i]) continue;
+   else
+   {
+    printf("错误，进程堵塞！\n");    //Requesti大于Availablei出现错误,进程Pi堵塞 
+    t =  false;
+    break;
+   }
+  }
+ }
+ 
+ if(t)               //试分配 
+ {
+  for(i = 0; i < 3; i++)
+  {
+   Available[i] = Available[i] - Request[i];
+   Allocation[a][i] = Allocation[a][i] + Request[i];
+   Need[a][i] = Need[a][i] - Request[i];
+  }  
+ }
+ 
+}
+
+void print_Sequence()        //打印安全序列 
+{
+ int i;
+ printf("安全序列为：");
+ for(i=0;i<4;i++)
+ {
+  printf("P%d->",Sequence[i]);
+ }
+ printf("P%d\n",Sequence[4]);
+}
+
+int main()
+{
+ int i,a;
+ if(is_safe())                          //判断T0系统是否处于安全状态
+ {
+  printf("T0系统处于安全状态\n");
+  print_Sequence();                 //打印输出找到的资源分配的安全序列
+  printf("\n"); 
+ }
+ else
+ {
+  printf("T0系统处于不安全状态\n");
+ }
+ 
+ printf("请输入资源请求的进程（0：P0  1:P1  2:P2  3:P3  4:P4）：");
+ scanf("%d",&a);
+ printf("输入请求A、B、C资源的数目：");
+ for(i = 0; i < 3; i++)
+ {
+  scanf("%d",&Request[i]);
+ } 
+  
+ request_option(a);
+ if(is_safe())                          //系统是否处于安全状态
+ {
+  printf("系统能满足该资源请求\n");
+  print_Sequence();                 //打印输出找到的资源分配的安全序列
+ }
+  else
+ {
+  printf("系统不能满足该资源请求\n");
+ }
+ 
+}
