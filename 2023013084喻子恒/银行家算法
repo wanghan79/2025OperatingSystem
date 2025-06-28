@@ -1,8 +1,5 @@
 def bankers_algorithm(Max, Need, Available, Allocated, Request):
     """
-    银行家算法实现
-
-    参数:
     Max: 最大资源需求矩阵
     Need: 前需求矩阵
     Available: 可用资源向量
@@ -15,13 +12,13 @@ def bankers_algorithm(Max, Need, Available, Allocated, Request):
 
     # 检查请求是否合法
     if len(Request) != len(Available):
-        print("请求的资源类型与系统资源类型不匹配")
+        print("非法请求")
         return False, Available, Need, Allocated
 
     # 检查请求是否满足
     for i in range(len(Request)):
         if Request[i] > Need[i]:
-            print("请求的资源超过当前需求")
+            print("资源超限")
             return False, Available, Need, Allocated
 
     # 检查能否满足请求
@@ -40,7 +37,7 @@ def bankers_algorithm(Max, Need, Available, Allocated, Request):
             break
 
     if process_index is None:
-        print("无法满足请求，可用资源不足")
+        print("拒绝，可用资源不足")
         return False, Available, Need, Allocated
 
     # 更新Available
@@ -73,10 +70,10 @@ def bankers_algorithm(Max, Need, Available, Allocated, Request):
 
     # 检查是否所有进程都完成
     if all(finish):
-        print("资源分配是安全的")
+        print("安全")
         return True, temp_available, temp_need, temp_allocated
     else:
-        print("资源分配不安全")
+        print("不安全")
         return False, Available, Need, Allocated
 
 # 示例调用
