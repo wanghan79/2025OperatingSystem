@@ -1,0 +1,84 @@
+def banker_algorithm(Max, Need, Available, Allocation, Request, pid):
+    """
+    使用银行家算法处理资源请求
+    """
+    new_allocation = [row[:] for row in Allocation]
+    new_need = [row[:] for row in Need]
+    new_available = Available[:]
+
+    num_resources = len(Available)
+
+    # 检查请求是否超出该进程的 Need
+    for j in range(num_resources):
+        if Request[j] > Need[pid][j]:
+            print("Error: 超出进程需求.")
+            return False, Allocation, Need, Available
+
+    # 检查是否有足够资源
+    for j in range(num_resources):
+        if Request[j] > Available[j]:
+            print("Error: 可用资源不足.")
+            return False, Allocation, Need, Available
+
+    # 假设分配
+    for j in range(num_resources):
+        new_allocation[pid][j] += Request[j]
+        new_need[pid][j] -= Request[j]
+        new_available[j] -= Request[j]
+
+    # 安全性检查
+    finish = [False] * len(Max)
+    work = new_available[:]
+    safe_sequence = []
+    while len(safe_sequence) < len(Max):
+        found = False
+        for i in range(len(Max)):
+            if not finish[i]:
+                can_allocate = all(Max[i][j] - new_allocation[i][j] <= work[j] for j in range(num_resources))
+                if can_allocate:
+                    for j in range(num_resources):
+                        work[j] += new_allocation[i][j]
+                    finish[i] = True
+                    safe_sequence.append(i)
+                    found = True
+        if not found:
+            print("系统处于不安全状态，拒绝分配。")
+            return False, Allocation, Need, Available
+
+    print("系统仍处于安全状态，安全序列为:", safe_sequence)
+    return True, new_allocation, new_need, new_available
+
+
+if __name__ == "__main__":
+    Max = [
+        [7, 5, 3],
+        [3, 2, 2],
+        [9, 0, 2],
+        [2, 2, 2],
+        [4, 3, 3]
+    ]
+
+    Allocation = [
+        [0, 1, 0],
+        [2, 0, 0],
+        [3, 0, 2],
+        [2, 1, 1],
+        [0, 0, 2]
+    ]
+
+    Available = [3, 3, 2]
+
+    Need = [[Max[i][j] - Allocation[i][j] for j in range(len(Available))] for i in range(len(Max))]
+
+    Request = [1, 0, 2]
+    pid = 1  # 请求进程ID
+
+    success, new_alloc, new_need, new_avail = banker_algorithm(Max, Need, Available, Allocation, Request, pid)
+
+    if success:
+        print("\n分配成功！新的状态为：")
+        print("New Allocation:\n", '\n'.join(str(row) for row in new_alloc))
+        print("New Need:\n", '\n'.join(str(row) for row in new_need))
+        print("New Available:", new_avail)
+    else:
+        print("分配失败。")
