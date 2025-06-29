@@ -1,0 +1,104 @@
+def banker_algorithm(processes, resources, Max, Allocated, Available, Request, process_id):
+
+    Need = [[Max[i][j] - Allocated[i][j] for j in range(resources)] for i in range(processes)]
+
+    for j in range(resources):
+        if Request[j] > Need[process_id][j]:
+            return (False, [], Allocated, Need, Available, "错误：请求超过了声明的最大需求")
+
+    for j in range(resources):
+        if Request[j] > Available[j]:
+            return (False, [], Allocated, Need, Available, "错误：资源不足，请等待")
+
+    new_Allocated = [row[:] for row in Allocated]
+    new_Need = [row[:] for row in Need]
+    new_Available = Available[:]
+
+    for j in range(resources):
+        new_Allocated[process_id][j] += Request[j]
+        new_Need[process_id][j] -= Request[j]
+        new_Available[j] -= Request[j]
+
+    Work = new_Available[:]
+    Finish = [False] * processes
+
+    safe_sequence = []
+    count = 0
+
+    while count < processes:
+        found = False
+        for i in range(processes):
+            if not Finish[i]:
+                can_execute = True
+                for j in range(resources):
+                    if new_Need[i][j] > Work[j]:
+                        can_execute = False
+                        break
+
+                if can_execute:
+                    for j in range(resources):
+                        Work[j] += new_Allocated[i][j]
+                    Finish[i] = True
+                    safe_sequence.append(i)
+                    found = True
+                    count += 1
+
+        if not found:
+            break
+
+    if all(Finish):
+        return (True, safe_sequence, new_Allocated, new_Need, new_Available, "分配成功，系统处于安全状态")
+    else:
+        return (False, [], Allocated, Need, Available, "分配会导致系统进入不安全状态，拒绝分配")
+
+
+#举例
+if __name__ == "__main__":
+    # 示例数据
+    processes = 5
+    resources = 3
+
+    # 最大需求矩阵
+    Max = [
+        [7, 5, 3],
+        [3, 2, 2],
+        [9, 0, 2],
+        [2, 2, 2],
+        [4, 3, 3]
+    ]
+
+    # 已分配矩阵
+    Allocated = [
+        [0, 1, 0],
+        [2, 0, 0],
+        [3, 0, 2],
+        [2, 1, 1],
+        [0, 0, 2]
+    ]
+
+    # 可用资源
+    Available = [3, 3, 2]
+
+    # 进程1请求资源
+    Request = [1, 0, 2]
+    process_id = 1
+
+    # 调用银行家算法
+    is_safe, sequence, new_alloc, new_need, new_avail, message = banker_algorithm(
+        processes, resources, Max, Allocated, Available, Request, process_id
+    )
+
+    # 输出结果
+    print(message)
+    print("是否安全:", is_safe)
+    if is_safe:
+        print("安全序列:", sequence)
+        print("\n分配后的矩阵:")
+        print("新的Allocated矩阵:")
+        for row in new_alloc:
+            print(row)
+        print("\n新的Need矩阵:")
+        for row in new_need:
+            print(row)
+        print("\n新的Available向量:")
+        print(new_avail)
