@@ -1,0 +1,72 @@
+import numpy as np
+
+def banker_algorithm(Max, Need, Available, Allocated, Request):
+    """
+    银行家算法
+    :param Max: 最大需求矩阵 (m x n)
+    :param Need: 需求矩阵 (m x n)
+    :param Available: 可用资源矩阵 (1 x n)
+    :param Allocated: 已分配资源矩阵 (m x n)
+    :param Request: 资源请求矩阵 (1 x n)
+    :return: (是否可以分配, 新的Available, 新的Allocated, 新的Need)
+    """
+
+    # 判断资源请求是否小于等于当前的需求矩阵
+    if (Request > Need).any():
+        return False, Available, Allocated, Need
+    
+    # 判断资源请求是否小于等于可用资源
+    if (Request > Available).any():
+        return False, Available, Allocated, Need
+    
+    # 模拟分配请求
+    Available_new = Available - Request
+    Allocated_new = Allocated.copy()
+    Need_new = Need.copy()
+
+    # 更新分配矩阵和需求矩阵
+    for i in range(len(Request)):
+        Allocated_new[i] += Request[i]
+        Need_new[i] -= Request[i]
+    
+    # 更新后的Available矩阵
+    Available_new = Available_new + Request
+
+    # 安全性检查
+    work = Available_new.copy()
+    finish = [False] * len(Need_new)
+    safe_sequence = []
+
+    while len(safe_sequence) < len(Need_new):
+        progress_made = False
+        for i in range(len(Need_new)):
+            if not finish[i] and all(Need_new[i] <= work):
+                work += Allocated_new[i]  # 将该进程的资源释放
+                finish[i] = True
+                safe_sequence.append(i)
+                progress_made = True
+                break
+        if not progress_made:
+            return False, Available, Allocated, Need  # 若找不到可以执行的进程，返回不可分配
+
+    return True, Available_new, Allocated_new, Need_new
+
+
+# 示例数据
+Max = np.array([[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]])
+Allocated = np.array([[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]])
+Available = np.array([3, 3, 2])
+Need = Max - Allocated
+Request = np.array([1, 0, 2])
+
+# 调用银行家算法
+can_allocate, new_available, new_allocated, new_need = banker_algorithm(Max, Need, Available, Allocated, Request)
+
+# 输出结果
+if can_allocate:
+    print("资源请求可以分配。")
+    print("分配后的Available矩阵：", new_available)
+    print("分配后的Allocated矩阵：", new_allocated)
+    print("分配后的Need矩阵：", new_need)
+else:
+    print("资源请求不能分配。")
