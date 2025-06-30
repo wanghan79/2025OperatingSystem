@@ -1,1 +1,108 @@
-
+import copy
+def is_safe_state(Need, Available, Allocated):
+    n = len(Need)
+    m = len(Available)
+    Work = copy.deepcopy(Available)
+    Finish = [False] * n
+    safe_sequence = []    
+    while True:
+        found = False
+        for i in range(n):
+            if not Finish[i]:
+                # 检查当前进程的需求是否小于等于可用资源
+                if all(Need[i][j] <= Work[j] for j in range(m)):
+                    # 模拟分配资源
+                    for j in range(m):
+                        Work[j] += Allocated[i][j]
+                    Finish[i] = True                    safe_sequence.append(i)
+                    found = True
+        if not found:
+            break  
+    # 检查所有进程是否完成
+    if all(Finish):
+        print("系统安全！安全序列:", safe_sequence)
+        return True
+    else:
+        print("系统不安全！")
+        return False
+def banker_algorithm(Max, Need, Available, Allocated, Request):
+    # 解析请求：进程索引和请求向量
+    p, req = Request
+    n = len(Need)
+    m = len(Available)
+    # 验证请求合法性
+    if p < 0 or p >= n:
+        print(f"错误：进程索引{p}超出范围！")
+        return False, Max, Need, Available, Allocated    
+    if len(req) != m:
+        print("错误：请求向量长度与资源种类不匹配！")
+        return False, Max, Need, Available, Allocated   
+    # 步骤1：检查请求是否小于等于需求
+    if not all(req[j] <= Need[p][j] for j in range(m)):
+        print(f"错误：进程{p}的请求超过其需求！")
+        return False, Max, Need, Available, Allocated   
+    # 步骤2：检查请求是否小于等于可用资源
+    if not all(req[j] <= Available[j] for j in range(m)):
+        print(f"警告：进程{p}的请求超过可用资源，需等待！")
+        return False, Max, Need, Available, Allocated   
+    # 保存原始状态（深拷贝）
+    original_Need = copy.deepcopy(Need)
+    original_Available = copy.deepcopy(Available)
+    original_Allocated = copy.deepcopy(Allocated)   
+    # 步骤3：尝试分配资源（临时修改状态）
+    for j in range(m):
+        Available[j] -= req[j]
+        Allocated[p][j] += req[j]
+        Need[p][j] -= req[j]  
+    print("\n尝试分配后的状态：")
+    print(f"Available: {Available}")
+    print(f"Allocated: {Allocated}")
+    print(f"Need: {Need}")  
+    # 步骤4：检查安全性
+    if is_safe_state(Need, Available, Allocated):
+        print("请求安全，分配成功！")
+        return True, Max, Need, Available, Allocated
+    else:
+        # 不安全，回滚到原始状态
+        print("请求不安全，恢复原始状态！")
+        return False, Max, original_Need, original_Available, original_Allocated
+if __name__ == "__main__":
+    # 5个进程，3种资源
+    Max = [
+        [7, 5, 3],
+        [3, 2, 2],
+        [9, 0, 2],
+        [2, 2, 2],
+        [4, 3, 3]
+    ]
+    Allocated = [
+        [0, 1, 0],
+        [2, 0, 0],
+        [3, 0, 2],
+        [2, 1, 1],
+        [0, 0, 2]
+    ]
+    # 计算Need矩阵
+    Need = []
+    for i in range(len(Max)):
+        need_row = [Max[i][j] - Allocated[i][j] for j in range(len(Max[0]))]
+        Need.append(need_row) 
+    Available = [3, 3, 2]  # 初始可用资源
+    # 打印初始状态
+    print("初始状态：")
+    print(f"Max: {Max}")
+    print(f"Allocated: {Allocated}")
+    print(f"Need: {Need}")
+    print(f"Available: {Available}\n")
+    
+    # 测试请求：进程1请求[1, 0, 2]
+    Request = (1, [1, 0, 2])
+    result, new_Max, new_Need, new_Available, new_Allocated = banker_algorithm(
+        Max, Need, Available, Allocated, Request
+    )
+    print("\n最终结果：")
+    print(f"分配成功: {result}")
+    print(f"Max: {new_Max}")
+    print(f"Allocated: {new_Allocated}")
+    print(f"Need: {new_Need}")
+    print(f"Available: {new_Available}")
