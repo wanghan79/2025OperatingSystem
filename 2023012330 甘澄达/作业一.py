@@ -1,18 +1,4 @@
 def banker_algorithm(Max, Need, Available, Allocated, Request, process_num):
-    """
-    银行家算法实现
-
-    参数:
-        Max: 最大需求矩阵 (n x m), n个进程对m类资源的最大需求
-        Need: 需求矩阵 (n x m), 每个进程还需要的各类资源数
-        Available: 可用资源向量 (1 x m), 系统当前可用资源数
-        Allocated: 分配矩阵 (n x m), 每个进程已分配的各类资源数
-        Request: 请求向量 (1 x m), 当前进程请求的资源数
-        process_num: 请求资源的进程号 (0到n-1)
-
-    返回:
-        (是否安全, 安全序列, 新的Max, 新的Need, 新的Available, 新的Allocated)
-    """
     # 1. 检查请求是否小于等于需求
     for i in range(len(Request)):
         if Request[i] > Need[process_num][i]:
@@ -63,4 +49,64 @@ def banker_algorithm(Max, Need, Available, Allocated, Request, process_num):
             break
 
     # 检查是否所有进程都完成
-    is_safe
+    is_safe = all(Finish)
+
+    if is_safe:
+        return (True, safe_sequence, Max, Need, Available, Allocated, "安全，可以分配")
+    else:
+        # 恢复原始状态
+        return (False, [], Max, old_Need, old_Available, old_Allocated, "不安全，拒绝分配")
+
+
+# 示例使用
+if __name__ == "__main__":
+    # 示例数据
+    Max = [
+        [7, 5, 3],
+        [3, 2, 2],
+        [9, 0, 2],
+        [2, 2, 2],
+        [4, 3, 3]
+    ]
+
+    Allocated = [
+        [0, 1, 0],
+        [2, 0, 0],
+        [3, 0, 2],
+        [2, 1, 1],
+        [0, 0, 2]
+    ]
+
+    # 计算Need矩阵
+    Need = []
+    for i in range(len(Max)):
+        Need.append([Max[i][j] - Allocated[i][j] for j in range(len(Max[i]))])
+
+    Available = [3, 3, 2]
+
+    # 进程1请求资源 (1, 0, 2)
+    Request = [1, 0, 2]
+    process_num = 1
+
+    # 运行银行家算法
+    result = banker_algorithm(Max, Need, Available, Allocated, Request, process_num)
+
+    # 输出结果
+    is_safe, sequence, new_Max, new_Need, new_Available, new_Allocated, message = result
+
+    print(f"分配结果: {message}")
+    print(f"安全序列: {sequence if is_safe else '无'}")
+    print("\n分配后状态:")
+    print("Max矩阵:")
+    for row in new_Max:
+        print(row)
+
+    print("\nNeed矩阵:")
+    for row in new_Need:
+        print(row)
+
+    print("\nAvailable向量:", new_Available)
+
+    print("\nAllocated矩阵:")
+    for row in new_Allocated:
+        print(row)
