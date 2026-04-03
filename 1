@@ -1,6 +1,6 @@
 import numpy as np
 
-def banker_algorithm(Max, Need, Available, Allocated, Request):
+def banker_algorithm(Max, Need, Available, Allocated, Request, process_id):
     """
     银行家算法
     :param Max: 最大需求矩阵 (m x n)
@@ -8,11 +8,12 @@ def banker_algorithm(Max, Need, Available, Allocated, Request):
     :param Available: 可用资源矩阵 (1 x n)
     :param Allocated: 已分配资源矩阵 (m x n)
     :param Request: 资源请求矩阵 (1 x n)
+    :param process_id: 发出请求的进程编号
     :return: (是否可以分配, 新的Available, 新的Allocated, 新的Need)
     """
 
-    # 判断资源请求是否小于等于当前的需求矩阵
-    if (Request > Need).any():
+    # 判断资源请求是否小于等于当前进程的需求矩阵
+    if (Request > Need[process_id]).any():
         return False, Available, Allocated, Need
     
     # 判断资源请求是否小于等于可用资源
@@ -24,13 +25,9 @@ def banker_algorithm(Max, Need, Available, Allocated, Request):
     Allocated_new = Allocated.copy()
     Need_new = Need.copy()
 
-    # 更新分配矩阵和需求矩阵
-    for i in range(len(Request)):
-        Allocated_new[i] += Request[i]
-        Need_new[i] -= Request[i]
-    
-    # 更新后的Available矩阵
-    Available_new = Available_new + Request
+    # 更新请求进程的分配矩阵和需求矩阵
+    Allocated_new[process_id] += Request
+    Need_new[process_id] -= Request
 
     # 安全性检查
     work = Available_new.copy()
@@ -59,8 +56,8 @@ Available = np.array([3, 3, 2])
 Need = Max - Allocated
 Request = np.array([1, 0, 2])
 
-# 调用银行家算法
-can_allocate, new_available, new_allocated, new_need = banker_algorithm(Max, Need, Available, Allocated, Request)
+# 调用银行家算法（进程1发出请求）
+can_allocate, new_available, new_allocated, new_need = banker_algorithm(Max, Need, Available, Allocated, Request, process_id=1)
 
 # 输出结果
 if can_allocate:
